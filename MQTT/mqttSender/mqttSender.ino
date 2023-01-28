@@ -3,10 +3,10 @@
 #include "freertos/timers.h"
 
 //---- WiFi settings
-// const char ssid[] = "Esp32Test";
-// const char password[] = "1234567890";
-const char *ssid = "atilimited.net2";
-const char *password = "AtiL2@2021#";
+const char ssid[] = "Esp32Test";
+const char password[] = "1234567890";
+// const char *ssid = "atilimited.net2";
+// const char *password = "AtiL2@2021#";
 
 //---- MQTT Broker settings
 const char *mqtt_server = "91.121.93.94";
@@ -124,6 +124,128 @@ public:
       }
     }
   }
+  void controller(uint8_t _sensor0, uint8_t _sensor1, const char *_topic, const char *_name, uint64_t _delayTime)
+  {
+    delayTime = _delayTime * microsecondInOneSecond * secondInOneMinute;
+    uint8_t sensorStatus0 = digitalRead(_sensor0);
+    uint8_t sensorStatus1 = digitalRead(_sensor1);
+    if (sensorStatus0 == HIGH || sensorStatus1 == HIGH)
+    {
+      motion = true;
+      if (!deviceON)
+      {
+        deviceON = true;
+        client.publish(_topic, "1");
+        if (!logFlag)
+        {
+          logStart = esp_timer_get_time();
+          logFlag = true;
+          Serial.print(_name);
+          Serial.print(" ");
+          Serial.print("Turned On");
+          Serial.print("\n");
+        }
+      }
+      if (deviceON)
+      {
+        delayRunning = false;
+      }
+    }
+    if (sensorStatus0 == LOW && sensorStatus1 == LOW && deviceON)
+    {
+      motion = false;
+      if (!delayRunning)
+      {
+        startDelay = esp_timer_get_time();
+        delayRunning = true;
+      }
+    }
+    if (!motion && (esp_timer_get_time() - startDelay >= delayTime))
+    {
+      if (deviceON)
+      {
+        deviceON = false;
+        delayRunning = false;
+        client.publish(_topic, "0");
+        if (logFlag)
+        {
+          logStop = esp_timer_get_time();
+          logValue = (logStop - logStart) / 1000000UL;
+          Serial.print(_name);
+          Serial.print(" ");
+          Serial.print(" Turned Off and was On for:");
+          Serial.print(" ");
+          Serial.print(logValue);
+          Serial.print(" ");
+          Serial.print("Seconds");
+          Serial.print("\n");
+          logFlag = false;
+        }
+      }
+    }
+  }
+  void controller(uint8_t _sensor0, uint8_t _sensor1, uint8_t _sensor2, uint8_t _sensor3, const char *_topic, const char *_name, uint64_t _delayTime)
+  {
+    delayTime = _delayTime * microsecondInOneSecond * secondInOneMinute;
+    uint8_t sensorStatus0 = digitalRead(_sensor0);
+    uint8_t sensorStatus1 = digitalRead(_sensor1);
+    uint8_t sensorStatus2 = digitalRead(_sensor2);
+    uint8_t sensorStatus3 = digitalRead(_sensor3);
+    if (sensorStatus0 == HIGH || sensorStatus1 == HIGH || sensorStatus2 == HIGH || sensorStatus3 == HIGH)
+    {
+      motion = true;
+      if (!deviceON)
+      {
+        deviceON = true;
+        client.publish(_topic, "1");
+        if (!logFlag)
+        {
+          logStart = esp_timer_get_time();
+          logFlag = true;
+          Serial.print(_name);
+          Serial.print(" ");
+          Serial.print("Turned On");
+          Serial.print("\n");
+        }
+      }
+      if (deviceON)
+      {
+        delayRunning = false;
+      }
+    }
+    if (sensorStatus0 == LOW && sensorStatus1 == LOW && sensorStatus2 == LOW && sensorStatus3 == LOW && deviceON)
+    {
+      motion = false;
+      if (!delayRunning)
+      {
+        startDelay = esp_timer_get_time();
+        delayRunning = true;
+      }
+    }
+    if (!motion && (esp_timer_get_time() - startDelay >= delayTime))
+    {
+      if (deviceON)
+      {
+        deviceON = false;
+        delayRunning = false;
+        client.publish(_topic, "0");
+        if (logFlag)
+        {
+          logStop = esp_timer_get_time();
+          logValue = (logStop - logStart) / 1000000UL;
+          Serial.print(_name);
+          Serial.print(" ");
+          Serial.print(" Turned Off and was On for:");
+          Serial.print(" ");
+          Serial.print(logValue);
+          Serial.print(" ");
+          Serial.print("Seconds");
+          Serial.print("\n");
+          logFlag = false;
+        }
+      }
+    }
+  }
   void interval(uint64_t _intervalTime, void (&function)())
   {
     intervalTime = _intervalTime * microsecondInOneSecond;
@@ -177,12 +299,12 @@ void loop()
 }
 void smartOfficeController()
 {
-  c[0].controller(sensor0_washRoom1, "DS/D0", "4TF_WRL", 1);
-  c[1].controller(sensor0_washRoom1, "DS/D1", "4TF_WRE", 2);
-  c[2].controller(sensor1_washRoom1, "DS/D2", "4TF_MRL0", 1);
-  c[3].controller(sensor1_washRoom1, "DS/D3", "4TF_MRL1", 2);
-  c[4].controller(sensor2_washRoom1, "DS/D4", "4TF_MRL2", 2);
-  c[0].interval(10, wifiReconnect);
+  // c[0].controller(sensor0_washRoom1, sensor1_washRoom1, sensor2_washRoom1, sensor3_washRoom1, "DS/D0", "4TF_WRL", 1);
+  // c[1].controller(sensor2_washRoom1, sensor3_washRoom1, "DS/D1", "4TF_WRE", 2);
+  c[2].controller(sensor0_mainRoom, "DS/D2", "4TF_MRL0", 1);
+  c[3].controller(sensor1_mainRoom, "DS/D3", "4TF_MRL1", 1);
+  c[4].controller(sensor2_mainRoom, "DS/D4", "4TF_MRL2", 1);
+  c[0].interval(5, wifiReconnect);
 }
 void wifiReconnect()
 {

@@ -4,11 +4,14 @@
 
 // Define Libraries.
 #include <PubSubClient.h>
-#include <Ethernet.h>
-#include <SPI.h>
+#include <WiFi.h>
+
+//---- WiFi settings
+const char ssid[] = "Esp32Test";
+const char password[] = "1234567890";
 
 // MQTT server credentils.
-const char *clientId = "ArduinoReceiver-0";
+const char *clientId = "ESP32-0";
 const char *mqtt_server = "91.121.93.94";
 const char *mqtt_username = "";
 const char *mqtt_password = "";
@@ -16,14 +19,10 @@ const int mqtt_port = 1883;
 uint8_t reconnectCounter = 0;
 
 // OUTPUT device declaration with PIN number.
-const uint8_t D0 = 22, D1 = 23, D2 = 24, D3 = 25, D4 = 26, D5 = 27, D6 = 28, D7 = 29, D8 = 30, D9 = 31,
-              D10 = 32, D11 = 33, D12 = 34, D13 = 35, D14 = 36, D15 = 37;
+const uint8_t D0 = 14, D1 = 27, D2 = 26, D3 = 25, D4 = 33;
 
-// Ethernet connection credentials.
-byte mac[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFE};
-IPAddress ip(192, 168, 0, 118);
-EthernetClient ethClient;
-PubSubClient client(ethClient);
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 void reconnect()
 {
@@ -35,6 +34,7 @@ void reconnect()
         if (client.connect(clientId, mqtt_username, mqtt_password))
         {
             Serial.print("Connected");
+            digitalWrite(2, HIGH);
             client.subscribe("DS/D0");
             client.subscribe("DS/D1");
             client.subscribe("DS/D2");
@@ -61,10 +61,11 @@ void reconnect()
             Serial.print("failed, rc=");
             Serial.print(client.state());
             Serial.println(" Trying in 2 seconds");
+            digitalWrite(2, LOW);
             delay(2000);
             if (reconnectCounter == 5)
             {
-                Ethernet.begin(mac, ip);
+                WiFi.begin(ssid, password);
                 reconnectCounter = 0;
             }
         }
@@ -79,17 +80,6 @@ void callback(char *topic, uint8_t *payload, unsigned int length)
     Controller(topic, "DS/D2", mqttMessage, D2);
     Controller(topic, "DS/D3", mqttMessage, D3);
     Controller(topic, "DS/D4", mqttMessage, D4);
-    Controller(topic, "DS/D5", mqttMessage, D5);
-    Controller(topic, "DS/D6", mqttMessage, D6);
-    Controller(topic, "DS/D7", mqttMessage, D7);
-    Controller(topic, "DS/D8", mqttMessage, D8);
-    Controller(topic, "DS/D9", mqttMessage, D9);
-    Controller(topic, "DS/D10", mqttMessage, D10);
-    Controller(topic, "DS/D11", mqttMessage, D11);
-    Controller(topic, "DS/D12", mqttMessage, D12);
-    Controller(topic, "DS/D13", mqttMessage, D13);
-    Controller(topic, "DS/D14", mqttMessage, D14);
-    Controller(topic, "DS/D15", mqttMessage, D15);
     if (strcmp(topic, "DS/ALL") == 0)
     {
         if (mqttMessage == 1)
@@ -166,29 +156,20 @@ void Controller(const char *_topic, const char *_topicName, const uint8_t _mqttM
 
 void setup()
 {
-    for (uint8_t i = 22; i <= 37; i++)
-    {
-        digitalWrite(i, OFF);
-    }
-    Serial.begin(9600);
+    digitalWrite(D0, OFF);
+    digitalWrite(D1, OFF);
+    digitalWrite(D2, OFF);
+    digitalWrite(D3, OFF);
+    digitalWrite(D4, OFF);
+    Serial.begin(115200);
     pinMode(D0, OUTPUT);
     pinMode(D1, OUTPUT);
     pinMode(D2, OUTPUT);
     pinMode(D3, OUTPUT);
     pinMode(D4, OUTPUT);
-    pinMode(D5, OUTPUT);
-    pinMode(D6, OUTPUT);
-    pinMode(D7, OUTPUT);
-    pinMode(D8, OUTPUT);
-    pinMode(D9, OUTPUT);
-    pinMode(D10, OUTPUT);
-    pinMode(D11, OUTPUT);
-    pinMode(D12, OUTPUT);
-    pinMode(D13, OUTPUT);
-    pinMode(D14, OUTPUT);
-    pinMode(D15, OUTPUT);
-
-    Ethernet.begin(mac, ip);
+    pinMode(2, OUTPUT);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
     delay(1000);
     client.setServer(mqtt_server, mqtt_port);
     client.setCallback(callback);
